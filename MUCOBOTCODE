@@ -1,0 +1,174 @@
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <Adafruit_Fingerprint.h>
+
+#define TRIGGERPIN   14          // Enable/speed motors Right        GPIO14(D5)
+#define ECHOPIN   12          // Enable/speed motors Left         GPIO12(D6)
+#define IN_1  15          // L298N in1 motors Right           GPIO15(D8)
+#define IN_2  13          // L298N in2 motors Right           GPIO13(D7)
+#define IN_3  0          // L298N in3 motors Left            GPIO0(D3)
+#define IN_4  4            // L298N in4 motors Left            GPIO4(D2)
+WidgetLCD lcd(V2);
+
+
+char auth[] = "ccO7t9xqsHXYwZed6oqjfhUB_iuvXTgh";                //Your Project authentication key
+char ssid[] = "androidAP";                                       // Name of your network (HotSpot or Router name)
+char pass[] = "123456789";  
+
+int x , y ;
+long duration; 
+int distance; 
+
+
+void setup()  
+{
+ 
+  Serial.begin(9600);
+  Blynk.begin(auth, ssid, pass);
+   
+
+ pinMode(IN_1, OUTPUT);
+ pinMode(IN_2, OUTPUT);
+ pinMode(IN_3, OUTPUT);
+ pinMode(IN_4, OUTPUT);
+ pinMode(TRIGGERPIN, OUTPUT);
+  pinMode(ECHOPIN, INPUT);
+
+}
+
+
+
+
+
+void goAhead(){
+
+      digitalWrite(IN_1, HIGH);
+      digitalWrite(IN_2, LOW);
+     
+
+      digitalWrite(IN_3, HIGH);
+      digitalWrite(IN_4, LOW);
+      
+      Serial.println("Front");  
+  }
+
+void goBack(){
+
+      digitalWrite(IN_1, LOW);
+      digitalWrite(IN_2, HIGH);
+      
+
+    digitalWrite(IN_3, LOW);
+      digitalWrite(IN_4, HIGH);
+      
+      Serial.println("Back");
+  }
+
+void goRight(){
+
+      digitalWrite(IN_1, LOW);
+       digitalWrite(IN_2, HIGH);
+      
+
+      digitalWrite(IN_3, HIGH);
+    digitalWrite(IN_4, LOW);
+      
+      Serial.println("Right");
+  }
+
+void goLeft(){
+
+     digitalWrite(IN_1,HIGH);
+      digitalWrite(IN_2,LOW);
+      
+
+      digitalWrite(IN_3, LOW);
+      digitalWrite(IN_4, HIGH);
+      
+      Serial.println("Left");
+  }
+
+void stopRobot(){  
+
+    digitalWrite(IN_1, HIGH);
+    digitalWrite(IN_2, HIGH);
+      
+
+      digitalWrite(IN_3, HIGH);
+      digitalWrite(IN_4, HIGH);
+      
+      Serial.println("stop");
+ }
+
+BLYNK_WRITE(V0)
+{
+  x = param.asInt();
+}
+
+BLYNK_WRITE(V1)
+{
+  y = param.asInt();
+}
+                  
+void loop()                                         // run over and over again
+{  
+  lcd.clear();
+  
+  digitalWrite(TRIGGERPIN, LOW);  
+  delayMicroseconds(2); 
+  
+  digitalWrite(TRIGGERPIN, HIGH);
+  delayMicroseconds(10); 
+  
+  digitalWrite(TRIGGERPIN, LOW);
+  duration = pulseIn(ECHOPIN, HIGH);
+  distance = duration*0.034/2;                      //calculating distance
+  
+  lcd.print(0, 0,"DISTANCE:");
+  lcd.print(11, 0,distance);
+ Serial.println(distance );
+ if(distance<=50)                                   // wall detected
+{
+ stopRobot();
+ lcd.print(9, 1,"STOPPED");
+    if (x <= 726 && x >= 295 && y == 0)               //only moving back left right
+             {
+                 goBack();
+             }
+    else if (y <= 670 && y >= 350 && x == 1023)
+             {
+                 goRight();
+             }
+    else if (y <= 650 && y >= 350 && x == 0)
+             {
+                 goLeft();
+              }
+}
+else                                                    //no obstacle
+{
+  if(x == 512 && y == 512)
+       {
+          stopRobot();
+       }
+  else if (x <= 718 && x >= 306 && y == 1023)
+           {
+               goAhead();
+           }
+   else if (x <= 726 && x >= 295 && y == 0)
+           {
+               goBack();
+           }
+  else if (y <= 670 && y >= 350 && x == 1023)
+           {
+               goRight();
+           }
+  else if (y <= 650 && y >= 350 && x == 0)
+           {
+               goLeft();
+            }
+}
+ 
+  delay(100);                          
+    Blynk.run();
+ }
